@@ -65,10 +65,19 @@ us_state_to_abbrev = {
 }
 
 df = pd.read_csv('Veeva_Prescriber_Data.csv')
-df['code'] = df['State'].map(us_state_to_abbrev)
+df['Code'] = df['State'].map(us_state_to_abbrev)
 
-gb = df.groupby(['code']).mean()
-print(gb)
+gb = df.groupby(['Code']).mean()
+
+dataForHover = df.groupby(['Code', 'Product']).mean()
+
+##dataForHover['text'] = df['state'] + '<br>' + \
+##    'Beef ' + df['beef'] + ' Dairy ' + df['dairy'] + '<br>' + \
+##    'Fruits ' + df['total fruits'] + ' Veggies ' + df['total veggies'] + '<br>' + \
+##    'Wheat ' + df['wheat'] + ' Corn ' + df['corn']
+
+print(dataForHover)
+print(dataForHover['NRx_Month_1'])
 
 fig = go.Figure(data=go.Choropleth(
     locations=gb.index, # Spatial coordinates
@@ -76,11 +85,13 @@ fig = go.Figure(data=go.Choropleth(
     locationmode = 'USA-states', # set of locations match entries in `locations`
     colorscale = 'Reds',
     colorbar_title = "Prescription Count",
+    text=df['text'], # hover text
+    marker_line_color='white', # line markers between states
 ))
 
 fig.update_layout(
-    title_text = '2011 US Agriculture Exports by State',
-    geo_scope='usa', # limite map scope to USA
+    title_text = 'Veeva Data',
+    geo_scope='usa', # limit map scope to USA
 )
 
 app = dash.Dash()
