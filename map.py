@@ -139,8 +139,7 @@ fig2.update_layout(
 
 app = dash.Dash()
 app.layout = html.Div([
-    dcc.Graph(figure=fig,
-    id='graph-with-slider'),
+    dcc.Graph(id='graph-with-slider'),
 
     dcc.Slider(
         id = 'month-slider',
