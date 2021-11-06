@@ -113,9 +113,9 @@ app.layout = html.Div([
 
     dcc.Slider(
         id = 'month-slider',
-        min=-1,
+        min=1,
         max=6,
-        marks={i: 'Month {}'.format(i) for i in range(6)},
+        marks={i: 'Month {}'.format(i) for i in range(1, 7)},
         value=-3
     ),
     html.Div(id='my-output'),
