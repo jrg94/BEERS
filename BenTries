@@ -1,3 +1,12 @@
+
+import {legend} from "@d3/color-legend"
+d3 = require("d3@6")
+topojson = require("topojson-client@3")
+us = FileAttachment("states-albers-10m.json").json()
+format = d => `${d}%`
+path = d3.geoPath()
+color = d3.scaleQuantize([1, 7], d3.schemeBlues[6])
+data = Object.assign(new Map(d3.csvParse(await FileAttachment("unemployment201907.csv").text(), ({name, rate}) => [name, +rate])), {title: "Unemployment rate (%)"})
 chart = {
   const svg = d3.create("svg")
       .attr("viewBox", [0, 0, 975, 610]);
@@ -26,11 +35,9 @@ ${format(data.get(d.properties.name))}`);
   return svg.node();
 }
 
-data = Object.assign(new Map(d3.csvParse(await FileAttachment("unemployment201907.csv").text(), ({name, rate}) => [name, +rate])), {title: "Unemployment rate (%)"})
-color = d3.scaleQuantize([1, 7], d3.schemeBlues[6])
-path = d3.geoPath()
-format = d => `${d}%`
-us = FileAttachment("states-albers-10m.json").json()
-topojson = require("topojson-client@3")
-d3 = require("d3@6")
-import {legend} from "@d3/color-legend"
+
+
+
+
+
+
