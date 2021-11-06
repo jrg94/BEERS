@@ -87,9 +87,6 @@ gb = df.groupby(['Product'])
 ##Figure 2 is the error bar chart
 fig2 = go.Figure()
 
-## Figure 2_ALT is drug with full prescriber information
-fig3 = go.Figure()
-
 #compile TRx over 6 months to provide mean
 df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3']+ df['TRx_Month_4']+df['TRx_Month_5']+ df['TRx_Month_6'])/6
 df = df.sort_values('TRxMean')
@@ -98,11 +95,11 @@ df = df.sort_values('TRxMean')
 gb = df.groupby(['Product'])
 
 #Figure 3 is the scatter on individual people to show top sellers
-fig3 = px.scatter(
+fig3 = go.Figure(go.Scatter(
     x=gb.get_group('Cholecap')['last_name'].values, 
-    y=gb.get_group('Cholecap')['TRxMean'].values)
-
-fig3.show()
+    y=gb.get_group('Cholecap')['TRxMean'].values
+    )
+)
 
 #add each plots
 fig2.add_trace(go.Scatter(
@@ -184,7 +181,9 @@ app.layout = html.Div([
     ),
 
     dcc.Graph(figure=fig2,
-    id='graph-with-error-bars')
+    id='graph-with-error-bars'),
+
+    dcc.Graph(figure=fig3)
 
 ])
 
