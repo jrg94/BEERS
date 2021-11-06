@@ -67,9 +67,12 @@ us_state_to_abbrev = {
 df = pd.read_csv('Veeva_Prescriber_Data.csv')
 df['code'] = df['State'].map(us_state_to_abbrev)
 
+gb = df.groupby(['code']).mean()
+print(gb)
+
 fig = go.Figure(data=go.Choropleth(
-    locations=df['code'], # Spatial coordinates
-    z = df['NRx_Month_1'].astype(float), # Data to be color-coded
+    locations=gb.index, # Spatial coordinates
+    z = gb['NRx_Month_1'].astype(float), # Data to be color-coded
     locationmode = 'USA-states', # set of locations match entries in `locations`
     colorscale = 'Reds',
     colorbar_title = "Prescription Count",
