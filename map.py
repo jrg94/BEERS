@@ -65,9 +65,12 @@ us_state_to_abbrev = {
     "U.S. Virgin Islands": "VI",
 }
 
+
 ## Reading in data
 df = pd.read_csv('Veeva_Prescriber_Data.csv')
 df['Code'] = df['State'].map(us_state_to_abbrev)
+products = df['Product'].unique()
+active_products = dict(zip(products, [True, True, True, True]))
 
 gb = df.groupby(['Code']).sum()
 
@@ -169,13 +172,18 @@ app.layout = html.Div([
 
 @app.callback(
     Output('graph-with-slider', 'figure'),
-    Input('month-slider', 'value')
+    [Input('month-slider', 'value'), Input('graph-with-error-bars', 'restyleData')]
 )
-def update_figure(month):
+def update_figure(month: int, selected: list):
     month_key = f'NRx_Month_{month}'
-    df['Code'] = df['State'].map(us_state_to_abbrev)
 
-    gb = df.groupby(['Code']).sum()
+    gb = df
+    if selected is not None:
+        index = selected[1][0]
+        active_products[products[index]] = not active_products[products[index]]
+        active = [drug for drug, value in active_products.items() if value]
+        gb = df[df['Product'].isin(active)]
+    gb = gb.groupby(['Code']).sum()
 
     dataForHover = df.groupby(['Code', 'Product']).sum().reset_index().astype(str)
 
