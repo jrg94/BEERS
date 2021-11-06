@@ -4,7 +4,6 @@ import dash
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output
-import plotly.express as px
 
 us_state_to_abbrev = {
     "Alabama": "AL",
@@ -67,6 +66,22 @@ us_state_to_abbrev = {
 }
 
 
+def generate_product_line_plot(products: list[str]):
+    line_plot = go.Figure()
+    for product in products:
+        line_plot.add_trace(
+            go.Scatter(
+                x=[1, 2, 3, 4, 5, 6],
+                y=[gb.get_group(product)[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
+                name=product
+            )
+        )
+    line_plot.update_layout(
+        title_text = 'Veeva Data Graph',
+    )
+    return line_plot
+
+
 ## Reading in data
 df = pd.read_csv('Veeva_Prescriber_Data.csv')
 df['Code'] = df['State'].map(us_state_to_abbrev)
@@ -84,9 +99,6 @@ dataForHover = dataForHover.groupby(['Code']).sum()
 
 gb = df.groupby(['Product'])
 
-##Figure 2 is the error bar chart
-fig2 = go.Figure()
-
 #compile TRx over 6 months to provide mean
 df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3']+ df['TRx_Month_4']+df['TRx_Month_5']+ df['TRx_Month_6'])/6
 df = df.sort_values('TRxMean')
@@ -99,60 +111,6 @@ fig3 = go.Figure(go.Scatter(
     x=gb.get_group('Cholecap')['last_name'].values, 
     y=gb.get_group('Cholecap')['TRxMean'].values
     )
-)
-
-#add each plots
-fig2.add_trace(go.Scatter(
-        x=[1, 2, 3, 4, 5, 6], #hard coded months
-        #y=[2, 1, 3, 4], #need to pull values
-        y = [gb.get_group('Cholecap')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
-        name = 'Cholecap'
-        #error_y=dict(
-        #    type='percent',
-        #    symmetric=False,
-        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
-        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
-        #    )
-))
-
-fig2.add_trace(go.Scatter(
-        x=[1, 2, 3, 4, 5, 6], #hard coded months
-        #y=[2, 1, 3, 4], #need to pull values
-        y = [gb.get_group('Zap-a-Pain')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
-        name = 'Zap-a-Pain'
-        #error_y=dict(
-        #    type='percent',
-        #    symmetric=False,
-        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
-        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
-        #    )
-))
-fig2.add_trace(go.Scatter(
-        x=[1, 2, 3, 4, 5, 6], #hard coded months
-        #y=[2, 1, 3, 4], #need to pull values
-        y = [gb.get_group('Nasalclear')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
-        name = 'Nasalclear'
-        #error_y=dict(
-        #    type='percent',
-        #    symmetric=False,
-        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
-        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
-        #    )
-))
-fig2.add_trace(go.Scatter(
-        x=[1, 2, 3, 4, 5, 6], #hard coded months
-        y = [gb.get_group('Nova-itch')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
-        name = 'Nova-itch',
-        error_y=dict(
-            type='percent',
-            symmetric=False,
-            array=[gb.get_group('Nova-itch')[f'NRx_Month_{i}'].max() - gb.get_group('Nova-itch')[f'NRx_Month_{i}'].sum() for i in range(1, 7)], # error bar calculate off max
-            arrayminus=[gb.get_group('Nova-itch')[f'NRx_Month_{i}'].sum() - gb.get_group('Nova-itch')[f'NRx_Month_{i}'].min()for i in range(1, 7)] # error bar calculate off min
-            )
-))
-
-fig2.update_layout(
-    title_text = 'Veeva Data Graph',
 )
 
 app = dash.Dash()
@@ -180,8 +138,7 @@ app.layout = html.Div([
         value='MC'
     ),
 
-    dcc.Graph(figure=fig2,
-    id='graph-with-error-bars'),
+    dcc.Graph(figure=generate_product_line_plot(products), id='graph-with-error-bars'),
 
     dcc.Graph(figure=fig3)
 
