@@ -75,6 +75,7 @@ dataForHover = df.groupby(['Code', 'Product']).sum().reset_index().astype(str)
 dataForHover['text'] = dataForHover['Product'] + ': ' + dataForHover['NRx_Month_1'] + '<br>'
 dataForHover = dataForHover.groupby(['Code']).sum()
 
+## Figure 1 is the USA map
 fig = go.Figure(data=go.Choropleth(
     locations=gb.index, # Spatial coordinates
     z = gb['NRx_Month_1'].astype(float), # Data to be color-coded
@@ -90,19 +91,23 @@ fig.update_layout(
     geo_scope='usa', # limit map scope to USA
 )
 
+##Figure 2 is the error bar chart
+fig2 = go.Figure(data=go.Scatter(
+        x=[1, 2, 3, 4],
+        y=[2, 1, 3, 4],
+        error_y=dict(
+            type='percent',
+            symmetric=False,
+            value=15,
+            valueminus=25)
+    ))
+
+fig.update_layout(
+    title_text = 'Veeva Data Graph',
+)
+
 app = dash.Dash()
 app.layout = html.Div([
-    dcc.Dropdown(
-        id='demo-dropdown',
-        options=[
-            {'label': 'Month 1', 'value': 'M1'},
-            {'label': 'Month 2', 'value': 'M2'},
-            {'label': 'Month 3', 'value': 'M3'},
-            {'label': 'Month 4', 'value': 'M4'}
-        ],
-        value='MC'
-    ),
-    
     dcc.Graph(figure=fig,
     id='graph-with-slider'),
 
@@ -113,7 +118,22 @@ app.layout = html.Div([
         marks={i: 'Month {}'.format(i) for i in range(6)},
         value=-3
     ),
-    html.Div(id='my-output')
+    html.Div(id='my-output'),
+
+        dcc.Dropdown(
+        id='demo-dropdown',
+        options=[
+            {'label': 'Month 1', 'value': 'M1'},
+            {'label': 'Month 2', 'value': 'M2'},
+            {'label': 'Month 3', 'value': 'M3'},
+            {'label': 'Month 4', 'value': 'M4'}
+        ],
+        value='MC'
+    ),
+
+    dcc.Graph(figure=fig2,
+    id='graph-with-error-bars')
+
 ])
 
 @app.callback(
