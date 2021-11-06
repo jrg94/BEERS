@@ -65,6 +65,7 @@ us_state_to_abbrev = {
     "U.S. Virgin Islands": "VI",
 }
 
+## Reading in data
 df = pd.read_csv('Veeva_Prescriber_Data.csv')
 df['Code'] = df['State'].map(us_state_to_abbrev)
 
@@ -72,10 +73,11 @@ gb = df.groupby(['Code']).sum()
 
 dataForHover = df.groupby(['Code', 'Product']).sum().reset_index().astype(str)
 
+##Month 1 for data by default
 dataForHover['text'] = dataForHover['Product'] + ': ' + dataForHover['NRx_Month_1'] + '<br>'
 dataForHover = dataForHover.groupby(['Code']).sum()
 
-## Figure 1 is the USA map
+## Figure 1 is the USA map, data for Month 1 is pulled by default
 fig = go.Figure(data=go.Choropleth(
     locations=gb.index, # Spatial coordinates
     z = gb['NRx_Month_1'].astype(float), # Data to be color-coded
@@ -91,18 +93,63 @@ fig.update_layout(
     geo_scope='usa', # limit map scope to USA
 )
 
-##Figure 2 is the error bar chart
-fig2 = go.Figure(data=go.Scatter(
-        x=[1, 2, 3, 4],
-        y=[2, 1, 3, 4],
-        error_y=dict(
-            type='percent',
-            symmetric=False,
-            value=15,
-            valueminus=25)
-    ))
+gb = df.groupby(['Product'])
 
-fig.update_layout(
+##Figure 2 is the error bar chart
+fig2 = go.Figure()
+
+#add each plots
+fig2.add_trace(go.Scatter(
+        x=[1, 2, 3, 4, 5, 6], #hard coded months
+        #y=[2, 1, 3, 4], #need to pull values
+        y = [gb.get_group('Cholecap')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
+        name = 'Cholecap'
+        #error_y=dict(
+        #    type='percent',
+        #    symmetric=False,
+        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
+        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
+        #    )
+))
+
+fig2.add_trace(go.Scatter(
+        x=[1, 2, 3, 4, 5, 6], #hard coded months
+        #y=[2, 1, 3, 4], #need to pull values
+        y = [gb.get_group('Zap-a-Pain')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
+        name = 'Zap-a-Pain'
+        #error_y=dict(
+        #    type='percent',
+        #    symmetric=False,
+        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
+        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
+        #    )
+))
+fig2.add_trace(go.Scatter(
+        x=[1, 2, 3, 4, 5, 6], #hard coded months
+        #y=[2, 1, 3, 4], #need to pull values
+        y = [gb.get_group('Nasalclear')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
+        name = 'Nasalclear'
+        #error_y=dict(
+        #    type='percent',
+        #    symmetric=False,
+        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
+        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
+        #    )
+))
+fig2.add_trace(go.Scatter(
+        x=[1, 2, 3, 4, 5, 6], #hard coded months
+        #y=[2, 1, 3, 4], #need to pull values
+        y = [gb.get_group('Nova-itch')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
+        name = 'Nova-itch'
+        #error_y=dict(
+        #    type='percent',
+        #    symmetric=False,
+        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
+        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
+        #    )
+))
+
+fig2.update_layout(
     title_text = 'Veeva Data Graph',
 )
 
@@ -113,20 +160,22 @@ app.layout = html.Div([
 
     dcc.Slider(
         id = 'month-slider',
-        min=-1,
+        min=1,
         max=6,
-        marks={i: 'Month {}'.format(i) for i in range(6)},
+        marks={i: 'Month {}'.format(i) for i in range(7)},
         value=-3
     ),
+
     html.Div(id='my-output'),
 
         dcc.Dropdown(
         id='demo-dropdown',
         options=[
-            {'label': 'Month 1', 'value': 'M1'},
-            {'label': 'Month 2', 'value': 'M2'},
-            {'label': 'Month 3', 'value': 'M3'},
-            {'label': 'Month 4', 'value': 'M4'}
+            {'label': 'All Drugs', 'value': 'SUMMARY'},
+            {'label': 'Drug 1', 'value': 'M1'},
+            {'label': 'Drug 2', 'value': 'M2'},
+            {'label': 'Drug 3', 'value': 'M3'},
+            {'label': 'Drug 4', 'value': 'M4'}
         ],
         value='MC'
     ),
