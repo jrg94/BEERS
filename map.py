@@ -4,6 +4,7 @@ import dash
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output
+import plotly.express as px
 
 us_state_to_abbrev = {
     "Alabama": "AL",
@@ -69,6 +70,7 @@ us_state_to_abbrev = {
 ## Reading in data
 df = pd.read_csv('Veeva_Prescriber_Data.csv')
 df['Code'] = df['State'].map(us_state_to_abbrev)
+df = df.sort_values('TRx_Month_1')
 products = df['Product'].unique()
 active_products = dict(zip(products, [True, True, True, True]))
 
@@ -84,6 +86,20 @@ gb = df.groupby(['Product'])
 
 ##Figure 2 is the error bar chart
 fig2 = go.Figure()
+
+#compile TRx over 6 months to provide mean
+df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3']+ df['TRx_Month_4']+df['TRx_Month_5']+ df['TRx_Month_6'])/6
+df = df.sort_values('TRxMean')
+
+#Need to add the conditional here to cut out bottom 90% 
+gb = df.groupby(['Product'])
+
+#Figure 3 is the scatter on individual people to show top sellers
+fig3 = go.Figure(go.Scatter(
+    x=gb.get_group('Cholecap')['last_name'].values, 
+    y=gb.get_group('Cholecap')['TRxMean'].values
+    )
+)
 
 #add each plots
 fig2.add_trace(go.Scatter(
@@ -125,15 +141,14 @@ fig2.add_trace(go.Scatter(
 ))
 fig2.add_trace(go.Scatter(
         x=[1, 2, 3, 4, 5, 6], #hard coded months
-        #y=[2, 1, 3, 4], #need to pull values
         y = [gb.get_group('Nova-itch')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
-        name = 'Nova-itch'
-        #error_y=dict(
-        #    type='percent',
-        #    symmetric=False,
-        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
-        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
-        #    )
+        name = 'Nova-itch',
+        error_y=dict(
+            type='percent',
+            symmetric=False,
+            array=[gb.get_group('Nova-itch')[f'NRx_Month_{i}'].max() - gb.get_group('Nova-itch')[f'NRx_Month_{i}'].sum() for i in range(1, 7)], # error bar calculate off max
+            arrayminus=[gb.get_group('Nova-itch')[f'NRx_Month_{i}'].sum() - gb.get_group('Nova-itch')[f'NRx_Month_{i}'].min()for i in range(1, 7)] # error bar calculate off min
+            )
 ))
 
 fig2.update_layout(
@@ -166,7 +181,9 @@ app.layout = html.Div([
     ),
 
     dcc.Graph(figure=fig2,
-    id='graph-with-error-bars')
+    id='graph-with-error-bars'),
+
+    dcc.Graph(figure=fig3)
 
 ])
 
