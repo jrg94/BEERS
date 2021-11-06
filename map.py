@@ -103,24 +103,29 @@ app.layout = html.Div([
         value='MC'
     ),
     
-    dcc.Graph(figure=fig),
+    dcc.Graph(figure=fig,
+    id='graph-with-slider'),
 
     dcc.Slider(
-        id='Month--slider',
-        min=df['Month'].min(),
-        max=df['Year'].max(),
-        value=df['Year'].max(),
-        marks={str(month): str(month) for month in df['Month'].unique()},
-        step=None
-    )
+        id = 'month-slider',
+        min=-1,
+        max=6,
+        marks={i: 'Month {}'.format(i) for i in range(6)},
+        value=-3
+    ),
+    html.Div(id='my-output')
 ])
 
 @app.callback(
-    Output('dd-output-container', 'children'),
-    Input('demo-dropdown', 'value')
-)
-def update_output(value):
-    return 'You have selected "{}"'.format(value)
+    Output('graph-with-slider', 'figure'),
+    Input('month-slider', 'value'))
+
+def update_figure(selected_year):
+    #filtered_df = df[df.year == selected_year]
+
+    fig.update_layout(transition_duration=500)
+
+    return fig
 
 if __name__ == '__main__':
     app.run_server(debug=True)
