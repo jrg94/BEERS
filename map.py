@@ -3,6 +3,7 @@ import pandas as pd
 import dash
 from dash import dcc
 from dash import html
+from dash.dependencies import Input, Output
 
 us_state_to_abbrev = {
     "Alabama": "AL",
@@ -67,17 +68,12 @@ us_state_to_abbrev = {
 df = pd.read_csv('Veeva_Prescriber_Data.csv')
 df['Code'] = df['State'].map(us_state_to_abbrev)
 
-gb = df.groupby(['Code']).mean()
+gb = df.groupby(['Code']).sum()
 
-dataForHover = df.groupby(['Code', 'Product']).mean()
+dataForHover = df.groupby(['Code', 'Product']).sum().reset_index().astype(str)
 
-##dataForHover['text'] = df['state'] + '<br>' + \
-##    'Beef ' + df['beef'] + ' Dairy ' + df['dairy'] + '<br>' + \
-##    'Fruits ' + df['total fruits'] + ' Veggies ' + df['total veggies'] + '<br>' + \
-##    'Wheat ' + df['wheat'] + ' Corn ' + df['corn']
-
-print(dataForHover)
-print(dataForHover['NRx_Month_1'])
+dataForHover['text'] = dataForHover['Product'] + ': ' + dataForHover['NRx_Month_1'] + '<br>'
+dataForHover = dataForHover.groupby(['Code']).sum()
 
 fig = go.Figure(data=go.Choropleth(
     locations=gb.index, # Spatial coordinates
@@ -85,7 +81,7 @@ fig = go.Figure(data=go.Choropleth(
     locationmode = 'USA-states', # set of locations match entries in `locations`
     colorscale = 'Reds',
     colorbar_title = "Prescription Count",
-    text=df['text'], # hover text
+    text=dataForHover['text'], # hover text
     marker_line_color='white', # line markers between states
 ))
 
@@ -96,7 +92,35 @@ fig.update_layout(
 
 app = dash.Dash()
 app.layout = html.Div([
-    dcc.Graph(figure=fig)
+    dcc.Dropdown(
+        id='demo-dropdown',
+        options=[
+            {'label': 'Month 1', 'value': 'M1'},
+            {'label': 'Month 2', 'value': 'M2'},
+            {'label': 'Month 3', 'value': 'M3'},
+            {'label': 'Month 4', 'value': 'M4'}
+        ],
+        value='MC'
+    ),
+    
+    dcc.Graph(figure=fig),
+
+    dcc.Slider(
+        id='Month--slider',
+        min=df['Month'].min(),
+        max=df['Year'].max(),
+        value=df['Year'].max(),
+        marks={str(month): str(month) for month in df['Month'].unique()},
+        step=None
+    )
 ])
 
-app.run_server(debug=True)  # Turn off reloader if inside Jupyter
+@app.callback(
+    Output('dd-output-container', 'children'),
+    Input('demo-dropdown', 'value')
+)
+def update_output(value):
+    return 'You have selected "{}"'.format(value)
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
