@@ -87,9 +87,17 @@ fig2 = go.Figure()
 ## Figure 2_ALT is drug with full prescriber information
 fig3 = go.Figure()
 
+#compile TRx over 6 months to provide mean
+df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3']+ df['TRx_Month_4']+df['TRx_Month_5']+ df['TRx_Month_6'])/6
+df = df.sort_values('TRxMean')
+
+#Need to add the conditional here to cut out bottom 90% 
+gb = df.groupby(['Product'])
+
+#Figure 3 is the scatter on individual people to show top sellers
 fig3 = px.scatter(
     x=gb.get_group('Cholecap')['last_name'].values, 
-    y=gb.get_group('Cholecap')['TRx_Month_1'].values)
+    y=gb.get_group('Cholecap')['TRxMean'].values)
 
 fig3.show()
 
