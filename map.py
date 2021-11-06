@@ -73,6 +73,7 @@ fig = go.Figure(data=go.Choropleth(
     locationmode = 'USA-states', # set of locations match entries in `locations`
     colorscale = 'Reds',
     colorbar_title = "Prescription Count",
+    text=[x for x in range(df.size)]
 ))
 
 fig.update_layout(
