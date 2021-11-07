@@ -158,9 +158,9 @@ def generate_scatter_plot(df: pd.DataFrame):
             )
             scatter_plot.update_xaxes(title_text='Prescriber Name', row=1, col=i+1)
         scatter_plot.update_layout(
-            title_text='Number of New Prescriptions by Prescriber Over the Past 6 Months',
+            title_text='Average Number of Total Prescriptions by Prescriber Over the Past 6 Months',
             showlegend=False,
-            yaxis_title='Number of New Prescriptions',
+            yaxis_title='Average Number of Total Prescriptions',
         )
         return scatter_plot
     return go.Figure()
