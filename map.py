@@ -117,6 +117,10 @@ def generate_map_plot(month_key: str, df: pd.DataFrame):
     return fig
 
 def generate_scatter_plot(df: pd.DataFrame):
+    """
+    Generates a scatter plot of the data where the x-axis is the name of
+    the prescriber and the y-axis is the mean number of prescriptions.
+    """
     return go.Figure(
         go.Scatter(
             x=df.get_group('Cholecap')['last_name'].values, 
