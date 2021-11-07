@@ -136,7 +136,7 @@ def generate_scatter_plot(df: pd.DataFrame):
     """
     scatter_plot = go.Figure(
         go.Scatter(
-            x=df.get_group('Cholecap')['last_name'].values,
+            x=df.get_group('Cholecap')['Name'].values,
             y=df.get_group('Cholecap')['TRxMean'].values
         )
     )
@@ -251,6 +251,7 @@ if __name__ == '__main__':
     # Reading in data
     df = pd.read_csv('Veeva_Prescriber_Data.csv')
     df['Code'] = df['State'].map(us_state_to_abbrev)
+    df['Name'] = df['first_name'] + ' ' + df['last_name']
     products = df['Product'].unique()
     active_products = dict(zip(products, [True, True, True, True]))
 
