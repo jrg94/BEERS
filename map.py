@@ -132,16 +132,17 @@ def generate_map_plot(month_key: str, df: pd.DataFrame):
     return fig
 
 
-def generate_scatter_plot(df: pd.DataFrame):
+def generate_scatter_plot(df: pd.DataFrame, column: str, title: str):
     """
     Generates a scatter plot of the data where the x-axis is the name of
     the prescriber and the y-axis is the mean number of prescriptions.
     """
-    colors = dict(zip(active_products.keys(), ['#636EFA', '#EF553B', '#00CC96', '#AB63FA']))
+    colors = dict(zip(active_products.keys(), [
+                  '#636EFA', '#EF553B', '#00CC96', '#AB63FA']))
     products = [k for k, v in active_products.items() if v]
     if products:
         scatter_plot = make_subplots(
-            rows=1, 
+            rows=1,
             cols=len(products),
             subplot_titles=products
         )
@@ -149,18 +150,19 @@ def generate_scatter_plot(df: pd.DataFrame):
             scatter_plot.add_trace(
                 go.Scatter(
                     x=df.get_group(product)['Name'].values,
-                    y=df.get_group(product)['TRxMean'].values,
+                    y=df.get_group(product)[column].values,
                     name=product,
                     line=dict(color=colors[product])
-                ), 
-                row=1, 
+                ),
+                row=1,
                 col=i+1,
             )
-            scatter_plot.update_xaxes(title_text='Prescriber Name', row=1, col=i+1)
+            scatter_plot.update_xaxes(
+                title_text='Prescriber Name', row=1, col=i+1)
         scatter_plot.update_layout(
-            title_text='Average Number of Total Prescriptions by Prescriber Over the Past 6 Months',
+            title_text=title,
             showlegend=False,
-            yaxis_title='Average Number of Total Prescriptions',
+            yaxis_title=title.split(":")[0], 
         )
         return scatter_plot
     return go.Figure()
@@ -208,6 +210,7 @@ def create_html_layout(app: dash.Dash):
 
         html.Div([
             dcc.Graph(
+                figure=go.Figure(),
                 id='graph-with-slider',
                 style={
                     'border': '2px solid black',
@@ -235,8 +238,17 @@ def create_html_layout(app: dash.Dash):
         ]),
 
         dcc.Graph(
-            figure=generate_scatter_plot(product_group),
             id='graph-with-scatter',
+            style={
+                'border': '2px solid black',
+                'border-radius': '10px',
+                'padding': '10px',
+                'margin': '10px',
+            }
+        ),
+
+        dcc.Graph(
+            id='graph-with-scatter-trend',
             style={
                 'border': '2px solid black',
                 'border-radius': '10px',
@@ -248,10 +260,11 @@ def create_html_layout(app: dash.Dash):
 
 
 @app.callback(
-    [Output('graph-with-slider', 'figure'),
-    Output('graph-with-scatter', 'figure')],
-    [Input('month-slider', 'value'),
-     Input('graph-with-error-bars', 'restyleData')]
+    Output('graph-with-slider', 'figure'),
+    Output('graph-with-scatter', 'figure'),
+    Output('graph-with-scatter-trend', 'figure'),
+    Input('month-slider', 'value'),
+    Input('graph-with-error-bars', 'restyleData')
 )
 def update_map(month: int, selected: list):
     """
@@ -274,7 +287,17 @@ def update_map(month: int, selected: list):
         ': ' + dataForHover[month_key] + '<br>'
     map_data['text'] = dataForHover.groupby(['Code']).sum()['text']
 
-    return generate_map_plot(month_key, map_data), generate_scatter_plot(product_group) 
+    mean = df.sort_values('TRxMean')
+    product_group = mean.groupby(['Product'])
+
+    trend = df.sort_values('TRxTrend')
+    product_group_trend = trend.groupby(['Product'])
+
+    return (
+        generate_map_plot(month_key, map_data),
+        generate_scatter_plot(product_group, 'TRxMean', 'Mean: Average Number of Total Prescriptions by Prescriber Over the Past 6 Months'),
+        generate_scatter_plot(product_group_trend, 'TRxTrend', 'Trend: Change in Average Number of Total Presciptions by Prescriber Over the Past 2 Months'),
+    )
 
 
 if __name__ == '__main__':
@@ -286,13 +309,10 @@ if __name__ == '__main__':
     active_products = dict(zip(products, [True, True, True, True]))
 
     # Compile TRx over 6 months to provide mean
-    df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3'] +
-                     df['TRx_Month_4']+df['TRx_Month_5'] + df['TRx_Month_6'])/6
-    df = df.sort_values('TRxMean')
+    df['TRxMean'] = sum(df[f'TRx_Month_{i}'] for i in range(1, 7)) / 6
+    df['TRxTrend'] = (df['TRx_Month_5'] + df['TRx_Month_6'])/2 - df['TRxMean']
 
-    # Create product group
     product_group = df.groupby(['Product'])
 
-    # L
     create_html_layout(app)
     app.run_server(debug=True)
