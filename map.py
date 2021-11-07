@@ -97,7 +97,9 @@ def generate_product_line_plot(df: pd.DataFrame, products: list[str]):
             y=1.02,
             xanchor="right",
             x=1
-        )
+        ),
+        xaxis_title='Month',
+        yaxis_title='Number of New Prescriptions',
     )
     return line_plot
 
@@ -154,9 +156,11 @@ def generate_scatter_plot(df: pd.DataFrame):
                 row=1, 
                 col=i+1,
             )
+            scatter_plot.update_xaxes(title_text='Prescriber Name', row=1, col=i+1)
         scatter_plot.update_layout(
             title_text='Number of New Prescriptions by Prescriber Over the Past 6 Months',
-            showlegend=False
+            showlegend=False,
+            yaxis_title='Number of New Prescriptions',
         )
         return scatter_plot
     return go.Figure()
