@@ -68,7 +68,6 @@ us_state_to_abbrev = {
 
 # Global variables
 app = dash.Dash()
-df = pd.read_csv('Veeva_Prescriber_Data.csv')
 
 
 def generate_product_line_plot(df: pd.DataFrame, products: list[str]):
@@ -104,17 +103,17 @@ def generate_map_plot(month_key: str, df: pd.DataFrame):
     :param df: the dataframe containing the data to be plotted
     """    
     fig = go.Figure(data=go.Choropleth(
-        locations=df.index, # Spatial coordinates
-        z = df[month_key].astype(float), # Data to be color-coded
-        locationmode = 'USA-states', # set of locations match entries in `locations`
+        locations=df.index, 
+        z = df[month_key].astype(float), 
+        locationmode = 'USA-states', 
         colorscale = 'Reds',
         colorbar_title = "Prescription Count",
-        text=df['text'], # hover text
-        marker_line_color='white', # line markers between states
+        text=df['text'], 
+        marker_line_color='white', 
     ))
 
     fig.update_layout(
-        title_text = 'Veeva Data',
+        title_text = f'New Prescriptions by USA State in Month {month_key[-1]}',
         geo_scope='usa', # limit map scope to USA
         transition_duration=500
     )
@@ -182,9 +181,9 @@ def update_map(month: int, selected: list):
     return generate_map_plot(month_key, map_data)
 
 if __name__ == '__main__':
-       # Reading in data
+    # Reading in data
+    df = pd.read_csv('Veeva_Prescriber_Data.csv')
     df['Code'] = df['State'].map(us_state_to_abbrev)
-    df = df.sort_values('TRx_Month_1')
     products = df['Product'].unique()
     active_products = dict(zip(products, [True, True, True, True]))
 
