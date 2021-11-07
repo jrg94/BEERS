@@ -1,4 +1,4 @@
-import plotly.graph_objects as go 
+import plotly.graph_objects as go
 import pandas as pd
 import dash
 from dash import dcc
@@ -83,12 +83,13 @@ def generate_product_line_plot(df: pd.DataFrame, products: list[str]):
         line_plot.add_trace(
             go.Scatter(
                 x=[1, 2, 3, 4, 5, 6],
-                y=[df.get_group(product)[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
+                y=[df.get_group(product)[
+                    f'NRx_Month_{i}'].sum() for i in range(1, 7)],
                 name=product
             )
         )
     line_plot.update_layout(
-        title_text = 'Veeva Data Graph',
+        title_text='New Prescriptions Per Month',
     )
     return line_plot
 
@@ -101,37 +102,43 @@ def generate_map_plot(month_key: str, df: pd.DataFrame):
 
     :param month_key: the month of data to be plotted in the form NRx_Month_#
     :param df: the dataframe containing the data to be plotted
-    """    
+    """
     fig = go.Figure(data=go.Choropleth(
-        locations=df.index, 
-        z = df[month_key].astype(float), 
-        locationmode = 'USA-states', 
-        colorscale = 'Reds',
-        colorbar_title = "Prescription Count",
-        text=df['text'], 
-        marker_line_color='white', 
+        locations=df.index,
+        z=df[month_key].astype(float),
+        locationmode='USA-states',
+        colorscale='Reds',
+        colorbar_title="Prescription Count",
+        text=df['text'],
+        marker_line_color='white',
     ))
 
     fig.update_layout(
-        title_text = f'New Prescriptions by USA State in Month {month_key[-1]}',
-        geo_scope='usa', # limit map scope to USA
+        title_text=f'New Prescriptions by USA State in Month {month_key[-1]}',
+        geo_scope='usa',  # limit map scope to USA
         transition_duration=500
     )
 
     return fig
+
 
 def generate_scatter_plot(df: pd.DataFrame):
     """
     Generates a scatter plot of the data where the x-axis is the name of
     the prescriber and the y-axis is the mean number of prescriptions.
     """
-    return go.Figure(
+    scatter_plot = go.Figure(
         go.Scatter(
-            x=df.get_group('Cholecap')['last_name'].values, 
+            x=df.get_group('Cholecap')['last_name'].values,
             y=df.get_group('Cholecap')['TRxMean'].values
         )
     )
-    
+    scatter_plot.update_layout(
+        title_text='Number of New Prescriptions by Prescriber',
+    )
+    return scatter_plot
+
+
 def create_html_layout(app: dash.Dash):
     """
     Creates the HTML layout for the Dash app.
@@ -139,25 +146,28 @@ def create_html_layout(app: dash.Dash):
     :param app: the Dash app reference
     """
     app.layout = html.Div([
-    dcc.Graph(id='graph-with-slider'),
+        dcc.Graph(id='graph-with-slider'),
 
-    dcc.Slider(
-        id = 'month-slider',
-        min=1,
-        max=6,
-        marks={i: 'Month {}'.format(i) for i in range(1, 7)},
-        value=1
-    ),
+        dcc.Slider(
+            id='month-slider',
+            min=1,
+            max=6,
+            marks={i: 'Month {}'.format(i) for i in range(1, 7)},
+            value=1
+        ),
 
-    dcc.Graph(figure=generate_product_line_plot(product_group, products), id='graph-with-error-bars'),
+        dcc.Graph(figure=generate_product_line_plot(
+            product_group, products), id='graph-with-error-bars'),
 
-    dcc.Graph(figure=generate_scatter_plot(product_group))
+        dcc.Graph(figure=generate_scatter_plot(product_group))
 
-])
+    ])
+
 
 @app.callback(
     Output('graph-with-slider', 'figure'),
-    [Input('month-slider', 'value'), Input('graph-with-error-bars', 'restyleData')]
+    [Input('month-slider', 'value'),
+     Input('graph-with-error-bars', 'restyleData')]
 )
 def update_map(month: int, selected: list):
     """
@@ -174,11 +184,14 @@ def update_map(month: int, selected: list):
         map_data = df[df['Product'].isin(active)]
 
     map_data = map_data.groupby(['Code']).sum()  # Sums data by state
-    dataForHover = df.groupby(['Code', 'Product']).sum().reset_index().astype(str)
-    dataForHover['text'] = dataForHover['Product'] + ': ' + dataForHover[month_key] + '<br>'
+    dataForHover = df.groupby(
+        ['Code', 'Product']).sum().reset_index().astype(str)
+    dataForHover['text'] = dataForHover['Product'] + \
+        ': ' + dataForHover[month_key] + '<br>'
     map_data['text'] = dataForHover.groupby(['Code']).sum()['text']
 
     return generate_map_plot(month_key, map_data)
+
 
 if __name__ == '__main__':
     # Reading in data
@@ -188,7 +201,8 @@ if __name__ == '__main__':
     active_products = dict(zip(products, [True, True, True, True]))
 
     # Compile TRx over 6 months to provide mean
-    df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3']+ df['TRx_Month_4']+df['TRx_Month_5']+ df['TRx_Month_6'])/6
+    df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3'] +
+                     df['TRx_Month_4']+df['TRx_Month_5'] + df['TRx_Month_6'])/6
     df = df.sort_values('TRxMean')
 
     # Create product group
