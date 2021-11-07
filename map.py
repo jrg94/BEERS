@@ -4,6 +4,7 @@ import dash
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output
+from plotly.subplots import make_subplots
 
 us_state_to_abbrev = {
     "Alabama": "AL",
@@ -134,16 +135,31 @@ def generate_scatter_plot(df: pd.DataFrame):
     Generates a scatter plot of the data where the x-axis is the name of
     the prescriber and the y-axis is the mean number of prescriptions.
     """
-    scatter_plot = go.Figure(
-        go.Scatter(
-            x=df.get_group('Cholecap')['Name'].values,
-            y=df.get_group('Cholecap')['TRxMean'].values
+    colors = dict(zip(active_products.keys(), ['#636EFA', '#EF553B', '#00CC96', '#AB63FA']))
+    products = [k for k, v in active_products.items() if v]
+    if products:
+        scatter_plot = make_subplots(
+            rows=1, 
+            cols=len(products),
+            subplot_titles=products
         )
-    )
-    scatter_plot.update_layout(
-        title_text='Number of New Prescriptions by Prescriber',
-    )
-    return scatter_plot
+        for i, product in enumerate(products):
+            scatter_plot.add_trace(
+                go.Scatter(
+                    x=df.get_group(product)['Name'].values,
+                    y=df.get_group(product)['TRxMean'].values,
+                    name=product,
+                    line=dict(color=colors[product])
+                ), 
+                row=1, 
+                col=i+1,
+            )
+        scatter_plot.update_layout(
+            title_text='Number of New Prescriptions by Prescriber Over the Past 6 Months',
+            showlegend=False
+        )
+        return scatter_plot
+    return go.Figure()
 
 
 def create_html_layout(app: dash.Dash):
@@ -208,6 +224,7 @@ def create_html_layout(app: dash.Dash):
 
         dcc.Graph(
             figure=generate_scatter_plot(product_group),
+            id='graph-with-scatter',
             style={
                 'border': '2px solid black',
                 'border-radius': '10px',
@@ -219,7 +236,8 @@ def create_html_layout(app: dash.Dash):
 
 
 @app.callback(
-    Output('graph-with-slider', 'figure'),
+    [Output('graph-with-slider', 'figure'),
+    Output('graph-with-scatter', 'figure')],
     [Input('month-slider', 'value'),
      Input('graph-with-error-bars', 'restyleData')]
 )
@@ -244,7 +262,7 @@ def update_map(month: int, selected: list):
         ': ' + dataForHover[month_key] + '<br>'
     map_data['text'] = dataForHover.groupby(['Code']).sum()['text']
 
-    return generate_map_plot(month_key, map_data)
+    return generate_map_plot(month_key, map_data), generate_scatter_plot(product_group) 
 
 
 if __name__ == '__main__':
