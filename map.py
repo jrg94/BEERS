@@ -89,7 +89,7 @@ def generate_product_line_plot(df: pd.DataFrame, products: list[str]):
             )
         )
     line_plot.update_layout(
-        title_text='New Prescriptions Per Month',
+        title_text='Number of New Prescriptions Per Month',
     )
     return line_plot
 
@@ -114,7 +114,7 @@ def generate_map_plot(month_key: str, df: pd.DataFrame):
     ))
 
     fig.update_layout(
-        title_text=f'New Prescriptions by USA State in Month {month_key[-1]}',
+        title_text=f'Number of New Prescriptions per USA State in Month {month_key[-1]}',
         geo_scope='usa',  # limit map scope to USA
         transition_duration=500
     )
@@ -146,6 +146,18 @@ def create_html_layout(app: dash.Dash):
     :param app: the Dash app reference
     """
     app.layout = html.Div([
+        html.H1(
+            children='Veeva Prescription Dashboard',
+            style={
+                'textAlign': 'center',
+            }
+        ),
+        html.Div(
+            children='A dashboard for visualizing prescription data.',
+            style={
+                'textAlign': 'center',
+            }
+        ),
         dcc.Graph(id='graph-with-slider'),
 
         dcc.Slider(
@@ -160,7 +172,6 @@ def create_html_layout(app: dash.Dash):
             product_group, products), id='graph-with-error-bars'),
 
         dcc.Graph(figure=generate_scatter_plot(product_group))
-
     ])
 
 
