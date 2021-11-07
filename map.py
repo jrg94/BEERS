@@ -90,6 +90,13 @@ def generate_product_line_plot(df: pd.DataFrame, products: list[str]):
         )
     line_plot.update_layout(
         title_text='Number of New Prescriptions Per Month',
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
     )
     return line_plot
 
@@ -158,18 +165,38 @@ def create_html_layout(app: dash.Dash):
                 'textAlign': 'center',
             }
         ),
-        dcc.Graph(id='graph-with-slider'),
-
-        dcc.Slider(
+        html.Div([dcc.Slider(
             id='month-slider',
             min=1,
             max=6,
             marks={i: 'Month {}'.format(i) for i in range(1, 7)},
-            value=1
+            value=1,
+        )], style={
+            'border': '2px solid black',
+            'border-radius': '10px',
+            'padding': '10px',
+            'margin': '10px'
+        }),
+        dcc.Graph(
+            id='graph-with-slider',
+            style={
+                'border': '2px solid black',
+                'border-radius': '10px',
+                'padding': '10px',
+                'margin': '10px',
+            }
         ),
 
-        dcc.Graph(figure=generate_product_line_plot(
-            product_group, products), id='graph-with-error-bars'),
+        dcc.Graph(
+            figure=generate_product_line_plot(product_group, products),
+            id='graph-with-error-bars',
+            style={
+                'border': '2px solid black',
+                'border-radius': '10px',
+                'padding': '10px',
+                'margin': '10px',
+            }
+        ),
 
         dcc.Graph(figure=generate_scatter_plot(product_group))
     ])
