@@ -201,26 +201,34 @@ def create_html_layout(app: dash.Dash):
             'padding': '10px',
             'margin': '10px'
         }),
-        dcc.Graph(
-            id='graph-with-slider',
-            style={
-                'border': '2px solid black',
-                'border-radius': '10px',
-                'padding': '10px',
-                'margin': '10px',
-            }
-        ),
 
-        dcc.Graph(
-            figure=generate_product_line_plot(product_group, products),
-            id='graph-with-error-bars',
-            style={
-                'border': '2px solid black',
-                'border-radius': '10px',
-                'padding': '10px',
-                'margin': '10px',
-            }
-        ),
+        html.Div([
+            dcc.Graph(
+                id='graph-with-slider',
+                style={
+                    'border': '2px solid black',
+                    'border-radius': '10px',
+                    'padding': '10px',
+                    'margin': '10px',
+                    'width': '47%',
+                    'display': 'inline-block'
+                }
+            ),
+
+            dcc.Graph(
+                figure=generate_product_line_plot(product_group, products),
+                id='graph-with-error-bars',
+                style={
+                    'border': '2px solid black',
+                    'border-radius': '10px',
+                    'padding': '10px',
+                    'margin': '10px',
+                    'width': '47%',
+                    'display': 'inline-block',
+                    'float': 'right'
+                }
+            ),
+        ]),
 
         dcc.Graph(
             figure=generate_scatter_plot(product_group),
