@@ -165,13 +165,21 @@ def create_html_layout(app: dash.Dash):
                 'textAlign': 'center',
             }
         ),
-        html.Div([dcc.Slider(
-            id='month-slider',
-            min=1,
-            max=6,
-            marks={i: 'Month {}'.format(i) for i in range(1, 7)},
-            value=1,
-        )], style={
+        html.Div([
+            html.Div(
+                children='Select Month:',
+                style={
+                    'margin': '5px',
+                }
+            ),
+            dcc.Slider(
+                id='month-slider',
+                min=1,
+                max=6,
+                marks={i: 'Month {}'.format(i) for i in range(1, 7)},
+                value=1,
+            ),
+        ], style={
             'border': '2px solid black',
             'border-radius': '10px',
             'padding': '10px',
@@ -198,7 +206,15 @@ def create_html_layout(app: dash.Dash):
             }
         ),
 
-        dcc.Graph(figure=generate_scatter_plot(product_group))
+        dcc.Graph(
+            figure=generate_scatter_plot(product_group),
+            style={
+                'border': '2px solid black',
+                'border-radius': '10px',
+                'padding': '10px',
+                'margin': '10px',
+            }
+        )
     ])
 
 
