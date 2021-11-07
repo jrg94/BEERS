@@ -81,6 +81,25 @@ def generate_product_line_plot(products: list[str]):
     )
     return line_plot
 
+def generate_map_plot(month_key: str, df: pd.DataFrame, dataForHover):    
+    fig = go.Figure(data=go.Choropleth(
+        locations=df.index, # Spatial coordinates
+        z = df[month_key].astype(float), # Data to be color-coded
+        locationmode = 'USA-states', # set of locations match entries in `locations`
+        colorscale = 'Reds',
+        colorbar_title = "Prescription Count",
+        text=dataForHover['text'], # hover text
+        marker_line_color='white', # line markers between states
+    ))
+
+    fig.update_layout(
+        title_text = 'Veeva Data',
+        geo_scope='usa', # limit map scope to USA
+        transition_duration=500
+    )
+
+    return fig
+
 
 ## Reading in data
 df = pd.read_csv('Veeva_Prescriber_Data.csv')
@@ -148,40 +167,22 @@ app.layout = html.Div([
     Output('graph-with-slider', 'figure'),
     [Input('month-slider', 'value'), Input('graph-with-error-bars', 'restyleData')]
 )
-def update_figure(month: int, selected: list):
+def update_map(month: int, selected: list):
     month_key = f'NRx_Month_{month}'
 
-    gb = df
+    map_data = df.copy()
     if selected is not None:
         index = selected[1][0]
         active_products[products[index]] = not active_products[products[index]]
         active = [drug for drug, value in active_products.items() if value]
-        gb = df[df['Product'].isin(active)]
-    gb = gb.groupby(['Code']).sum()
+        map_data = df[df['Product'].isin(active)]
+    map_data = map_data.groupby(['Code']).sum()
 
     dataForHover = df.groupby(['Code', 'Product']).sum().reset_index().astype(str)
-
     dataForHover['text'] = dataForHover['Product'] + ': ' + dataForHover[month_key] + '<br>'
     dataForHover = dataForHover.groupby(['Code']).sum()
 
-    ## Figure 1 is the USA map
-    fig = go.Figure(data=go.Choropleth(
-        locations=gb.index, # Spatial coordinates
-        z = gb[month_key].astype(float), # Data to be color-coded
-        locationmode = 'USA-states', # set of locations match entries in `locations`
-        colorscale = 'Reds',
-        colorbar_title = "Prescription Count",
-        text=dataForHover['text'], # hover text
-        marker_line_color='white', # line markers between states
-    ))
-
-    fig.update_layout(
-        title_text = 'Veeva Data',
-        geo_scope='usa', # limit map scope to USA
-        transition_duration=500
-    )
-
-    return fig
+    return generate_map_plot(month_key, map_data, dataForHover)
 
 if __name__ == '__main__':
     app.run_server(debug=True)
