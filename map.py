@@ -66,6 +66,11 @@ us_state_to_abbrev = {
 }
 
 
+# Global variables
+app = dash.Dash()
+df = pd.read_csv('Veeva_Prescriber_Data.csv')
+
+
 def generate_product_line_plot(df: pd.DataFrame, products: list[str]):
     """
     Generates a line plot for each product in the list of products.
@@ -127,24 +132,14 @@ def generate_scatter_plot(df: pd.DataFrame):
             y=df.get_group('Cholecap')['TRxMean'].values
         )
     )
+    
+def create_html_layout(app: dash.Dash):
+    """
+    Creates the HTML layout for the Dash app.
 
-
-# Reading in data
-df = pd.read_csv('Veeva_Prescriber_Data.csv')
-df['Code'] = df['State'].map(us_state_to_abbrev)
-df = df.sort_values('TRx_Month_1')
-products = df['Product'].unique()
-active_products = dict(zip(products, [True, True, True, True]))
-
-# Compile TRx over 6 months to provide mean
-df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3']+ df['TRx_Month_4']+df['TRx_Month_5']+ df['TRx_Month_6'])/6
-df = df.sort_values('TRxMean')
-
-# Create product group
-product_group = df.groupby(['Product'])
-
-app = dash.Dash()
-app.layout = html.Div([
+    :param app: the Dash app reference
+    """
+    app.layout = html.Div([
     dcc.Graph(id='graph-with-slider'),
 
     dcc.Slider(
@@ -166,6 +161,10 @@ app.layout = html.Div([
     [Input('month-slider', 'value'), Input('graph-with-error-bars', 'restyleData')]
 )
 def update_map(month: int, selected: list):
+    """
+    A callback function that updates the map plot based on changes to the month
+    slider and the legend of the line plat.
+    """
     month_key = f'NRx_Month_{month}'
 
     map_data = df.copy()
@@ -183,4 +182,19 @@ def update_map(month: int, selected: list):
     return generate_map_plot(month_key, map_data)
 
 if __name__ == '__main__':
+       # Reading in data
+    df['Code'] = df['State'].map(us_state_to_abbrev)
+    df = df.sort_values('TRx_Month_1')
+    products = df['Product'].unique()
+    active_products = dict(zip(products, [True, True, True, True]))
+
+    # Compile TRx over 6 months to provide mean
+    df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3']+ df['TRx_Month_4']+df['TRx_Month_5']+ df['TRx_Month_6'])/6
+    df = df.sort_values('TRxMean')
+
+    # Create product group
+    product_group = df.groupby(['Product'])
+
+    # L
+    create_html_layout(app)
     app.run_server(debug=True)
