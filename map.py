@@ -1,10 +1,9 @@
-import plotly.graph_objects as go 
+import plotly.graph_objects as go
 import pandas as pd
 import dash
 from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output
-import plotly.express as px
 
 us_state_to_abbrev = {
     "Alabama": "AL",
@@ -67,164 +66,202 @@ us_state_to_abbrev = {
 }
 
 
-## Reading in data
-df = pd.read_csv('Veeva_Prescriber_Data.csv')
-df['Code'] = df['State'].map(us_state_to_abbrev)
-df = df.sort_values('TRx_Month_1')
-products = df['Product'].unique()
-active_products = dict(zip(products, [True, True, True, True]))
-
-gb = df.groupby(['Code']).sum()
-
-dataForHover = df.groupby(['Code', 'Product']).sum().reset_index().astype(str)
-
-##Month 1 for data by default
-dataForHover['text'] = dataForHover['Product'] + ': ' + dataForHover['NRx_Month_1'] + '<br>'
-dataForHover = dataForHover.groupby(['Code']).sum()
-
-gb = df.groupby(['Product'])
-
-##Figure 2 is the error bar chart
-fig2 = go.Figure()
-
-#compile TRx over 6 months to provide mean
-df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3']+ df['TRx_Month_4']+df['TRx_Month_5']+ df['TRx_Month_6'])/6
-df = df.sort_values('TRxMean')
-
-#Need to add the conditional here to cut out bottom 90% 
-gb = df.groupby(['Product'])
-
-#Figure 3 is the scatter on individual people to show top sellers
-fig3 = go.Figure(go.Scatter(
-    x=gb.get_group('Cholecap')['last_name'].values, 
-    y=gb.get_group('Cholecap')['TRxMean'].values
-    )
-)
-
-#add each plots
-fig2.add_trace(go.Scatter(
-        x=[1, 2, 3, 4, 5, 6], #hard coded months
-        #y=[2, 1, 3, 4], #need to pull values
-        y = [gb.get_group('Cholecap')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
-        name = 'Cholecap'
-        #error_y=dict(
-        #    type='percent',
-        #    symmetric=False,
-        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
-        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
-        #    )
-))
-
-fig2.add_trace(go.Scatter(
-        x=[1, 2, 3, 4, 5, 6], #hard coded months
-        #y=[2, 1, 3, 4], #need to pull values
-        y = [gb.get_group('Zap-a-Pain')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
-        name = 'Zap-a-Pain'
-        #error_y=dict(
-        #    type='percent',
-        #    symmetric=False,
-        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
-        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
-        #    )
-))
-fig2.add_trace(go.Scatter(
-        x=[1, 2, 3, 4, 5, 6], #hard coded months
-        #y=[2, 1, 3, 4], #need to pull values
-        y = [gb.get_group('Nasalclear')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
-        name = 'Nasalclear'
-        #error_y=dict(
-        #    type='percent',
-        #    symmetric=False,
-        #    value=y_Drug1['NRx_Month_1'].max()-y_Drug1['NRx_Month_1'].mean(), # error bar calculate off max
-        #    valueminus=y_Drug1['NRx_Month_1'].mean()-y_Drug1['NRx_Month_1'].max() # error bar calculate off min
-        #    )
-))
-fig2.add_trace(go.Scatter(
-        x=[1, 2, 3, 4, 5, 6], #hard coded months
-        y = [gb.get_group('Nova-itch')[f'NRx_Month_{i}'].sum() for i in range(1, 7)],
-        name = 'Nova-itch',
-        error_y=dict(
-            type='percent',
-            symmetric=False,
-            array=[gb.get_group('Nova-itch')[f'NRx_Month_{i}'].max() - gb.get_group('Nova-itch')[f'NRx_Month_{i}'].sum() for i in range(1, 7)], # error bar calculate off max
-            arrayminus=[gb.get_group('Nova-itch')[f'NRx_Month_{i}'].sum() - gb.get_group('Nova-itch')[f'NRx_Month_{i}'].min()for i in range(1, 7)] # error bar calculate off min
-            )
-))
-
-fig2.update_layout(
-    title_text = 'Veeva Data Graph',
-)
-
+# Global variables
 app = dash.Dash()
-app.layout = html.Div([
-    dcc.Graph(id='graph-with-slider'),
 
-    dcc.Slider(
-        id = 'month-slider',
-        min=1,
-        max=6,
-        marks={i: 'Month {}'.format(i) for i in range(1, 7)},
-        value=1
-    ),
-    html.Div(id='my-output'),
 
-        dcc.Dropdown(
-        id='demo-dropdown',
-        options=[
-            {'label': 'All Drugs', 'value': 'SUMMARY'},
-            {'label': 'Drug 1', 'value': 'M1'},
-            {'label': 'Drug 2', 'value': 'M2'},
-            {'label': 'Drug 3', 'value': 'M3'},
-            {'label': 'Drug 4', 'value': 'M4'}
-        ],
-        value='MC'
-    ),
+def generate_product_line_plot(df: pd.DataFrame, products: list[str]):
+    """
+    Generates a line plot for each product in the list of products.
+    Line plots include errors.
 
-    dcc.Graph(figure=fig2,
-    id='graph-with-error-bars'),
+    :param df: the dataframe containing the data to be plotted
+    :param products: a list of products to be plotted
+    """
+    line_plot = go.Figure()
+    for product in products:
+        line_plot.add_trace(
+            go.Scatter(
+                x=[1, 2, 3, 4, 5, 6],
+                y=[df.get_group(product)[
+                    f'NRx_Month_{i}'].sum() for i in range(1, 7)],
+                name=product
+            )
+        )
+    line_plot.update_layout(
+        title_text='Number of New Prescriptions Per Month',
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    return line_plot
 
-    dcc.Graph(figure=fig3)
 
-])
+def generate_map_plot(month_key: str, df: pd.DataFrame):
+    """
+    Generates a plot of the map of the US. The map is colored based on the
+    total number of prescriptions for each state. The hover data is the
+    total prescriptions of each product in each state. 
 
-@app.callback(
-    Output('graph-with-slider', 'figure'),
-    [Input('month-slider', 'value'), Input('graph-with-error-bars', 'restyleData')]
-)
-def update_figure(month: int, selected: list):
-    month_key = f'NRx_Month_{month}'
-
-    gb = df
-    if selected is not None:
-        index = selected[1][0]
-        active_products[products[index]] = not active_products[products[index]]
-        active = [drug for drug, value in active_products.items() if value]
-        gb = df[df['Product'].isin(active)]
-    gb = gb.groupby(['Code']).sum()
-
-    dataForHover = df.groupby(['Code', 'Product']).sum().reset_index().astype(str)
-
-    dataForHover['text'] = dataForHover['Product'] + ': ' + dataForHover[month_key] + '<br>'
-    dataForHover = dataForHover.groupby(['Code']).sum()
-
-    ## Figure 1 is the USA map
+    :param month_key: the month of data to be plotted in the form NRx_Month_#
+    :param df: the dataframe containing the data to be plotted
+    """
     fig = go.Figure(data=go.Choropleth(
-        locations=gb.index, # Spatial coordinates
-        z = gb[month_key].astype(float), # Data to be color-coded
-        locationmode = 'USA-states', # set of locations match entries in `locations`
-        colorscale = 'Reds',
-        colorbar_title = "Prescription Count",
-        text=dataForHover['text'], # hover text
-        marker_line_color='white', # line markers between states
+        locations=df.index,
+        z=df[month_key].astype(float),
+        locationmode='USA-states',
+        colorscale='Reds',
+        colorbar_title="Prescription Count",
+        text=df['text'],
+        marker_line_color='white',
     ))
 
     fig.update_layout(
-        title_text = 'Veeva Data',
-        geo_scope='usa', # limit map scope to USA
+        title_text=f'Number of New Prescriptions per USA State in Month {month_key[-1]}',
+        geo_scope='usa',  # limit map scope to USA
         transition_duration=500
     )
 
     return fig
 
+
+def generate_scatter_plot(df: pd.DataFrame):
+    """
+    Generates a scatter plot of the data where the x-axis is the name of
+    the prescriber and the y-axis is the mean number of prescriptions.
+    """
+    scatter_plot = go.Figure(
+        go.Scatter(
+            x=df.get_group('Cholecap')['last_name'].values,
+            y=df.get_group('Cholecap')['TRxMean'].values
+        )
+    )
+    scatter_plot.update_layout(
+        title_text='Number of New Prescriptions by Prescriber',
+    )
+    return scatter_plot
+
+
+def create_html_layout(app: dash.Dash):
+    """
+    Creates the HTML layout for the Dash app.
+
+    :param app: the Dash app reference
+    """
+    app.layout = html.Div([
+        html.H1(
+            children='Veeva Prescription Dashboard',
+            style={
+                'textAlign': 'center',
+            }
+        ),
+        html.Div(
+            children='A dashboard for visualizing prescription data.',
+            style={
+                'textAlign': 'center',
+            }
+        ),
+        html.Div([
+            html.Div(
+                children='Select Month:',
+                style={
+                    'margin': '5px',
+                }
+            ),
+            dcc.Slider(
+                id='month-slider',
+                min=1,
+                max=6,
+                marks={i: 'Month {}'.format(i) for i in range(1, 7)},
+                value=1,
+            ),
+        ], style={
+            'border': '2px solid black',
+            'border-radius': '10px',
+            'padding': '10px',
+            'margin': '10px'
+        }),
+        dcc.Graph(
+            id='graph-with-slider',
+            style={
+                'border': '2px solid black',
+                'border-radius': '10px',
+                'padding': '10px',
+                'margin': '10px',
+            }
+        ),
+
+        dcc.Graph(
+            figure=generate_product_line_plot(product_group, products),
+            id='graph-with-error-bars',
+            style={
+                'border': '2px solid black',
+                'border-radius': '10px',
+                'padding': '10px',
+                'margin': '10px',
+            }
+        ),
+
+        dcc.Graph(
+            figure=generate_scatter_plot(product_group),
+            style={
+                'border': '2px solid black',
+                'border-radius': '10px',
+                'padding': '10px',
+                'margin': '10px',
+            }
+        )
+    ])
+
+
+@app.callback(
+    Output('graph-with-slider', 'figure'),
+    [Input('month-slider', 'value'),
+     Input('graph-with-error-bars', 'restyleData')]
+)
+def update_map(month: int, selected: list):
+    """
+    A callback function that updates the map plot based on changes to the month
+    slider and the legend of the line plat.
+    """
+    month_key = f'NRx_Month_{month}'
+
+    map_data = df.copy()
+    if selected is not None:
+        index = selected[1][0]
+        active_products[products[index]] = not active_products[products[index]]
+        active = [drug for drug, value in active_products.items() if value]
+        map_data = df[df['Product'].isin(active)]
+
+    map_data = map_data.groupby(['Code']).sum()  # Sums data by state
+    dataForHover = df.groupby(
+        ['Code', 'Product']).sum().reset_index().astype(str)
+    dataForHover['text'] = dataForHover['Product'] + \
+        ': ' + dataForHover[month_key] + '<br>'
+    map_data['text'] = dataForHover.groupby(['Code']).sum()['text']
+
+    return generate_map_plot(month_key, map_data)
+
+
 if __name__ == '__main__':
+    # Reading in data
+    df = pd.read_csv('Veeva_Prescriber_Data.csv')
+    df['Code'] = df['State'].map(us_state_to_abbrev)
+    products = df['Product'].unique()
+    active_products = dict(zip(products, [True, True, True, True]))
+
+    # Compile TRx over 6 months to provide mean
+    df['TRxMean'] = (df['TRx_Month_1'] + df['TRx_Month_2'] + df['TRx_Month_3'] +
+                     df['TRx_Month_4']+df['TRx_Month_5'] + df['TRx_Month_6'])/6
+    df = df.sort_values('TRxMean')
+
+    # Create product group
+    product_group = df.groupby(['Product'])
+
+    # L
+    create_html_layout(app)
     app.run_server(debug=True)
