@@ -176,13 +176,13 @@ def create_html_layout(app: dash.Dash):
     """
     app.layout = html.Div([
         html.H1(
-            children='Veeva Prescription Dashboard',
+            children='Neru Dashboard',
             style={
                 'textAlign': 'center',
             }
         ),
         html.Div(
-            children='A dashboard for visualizing prescription data.',
+            children='A dashboard for visualizing the Veeva Systems prescription data.',
             style={
                 'textAlign': 'center',
             }
